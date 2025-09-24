@@ -1,18 +1,11 @@
 #Include "Protheus.ch"
 #Include "FwMVCDef.ch"
 
-#Include "Protheus.ch"
-#Include "FwMVCDef.ch"
 
 // ========================
 // FUNÇÃO DE ENVIO DE E-MAIL VIA PE
 // ========================
-// Observação importante:
-// - NUNCA acesse campos "nus" (Z0_DESCRI, Z0_STATUS, etc.) no contexto WS.
-// - SEMPRE use o model recebido (aParam[1]) e a seção 'SZ0MASTER'.
-// - Removidas inicializações Static com acesso a campos.
-// - FWAlertInfo trocado por ConOut (WS não tem UI).
-// - Mantida lógica de e-mail.
+
 
 User Function SZ0MODEL()
     Local aParam   := PARAMIXB
@@ -28,7 +21,6 @@ User Function SZ0MODEL()
     Local cNomeVend := ""
     Local aArea     := NIL
 
-    // Valores "anteriores" para comparação em alteração
     Static cDescriAnt   := ""
     Static cCodVendAnt  := ""
     Static cNomeVendAnt := ""
@@ -101,11 +93,7 @@ User Function SZ0MODEL()
 
         // Envio de e-mail
         fEnvia("caio.silva@korusconsultoria.com.br", "Novo Registro Incluído", cHTML, {}, .T., .T.)
-        If fEnvia("caio.silva@korusconsultoria.com.br", "Novo Registro Incluído", cHTML, {}, .T., .T.)
         FWAlertInfo("Registro Incluído e enviado pro E-Mail.", "Sucesso")
-        Else
-        FWAlertInfo("Registro Incluído, mas houve falha no envio de e-mail.", "Atenção")
-        EndIf
         Return xRet
     EndIf
 
@@ -145,11 +133,7 @@ User Function SZ0MODEL()
         '</div></body></html>'
 
         fEnvia("caio.silva@korusconsultoria.com.br", "Registro Excluído", cHTML, {}, .T., .T.)
-        If fEnvia("caio.silva@korusconsultoria.com.br", "Registro Excluído", cHTML, {}, .T., .T.)
         FWAlertInfo("Registro Excluído e enviado pro E-Mail.", "Sucesso")
-        Else
-        FWAlertInfo("Registro Excluído, mas houve falha no envio de e-mail.", "Atenção")
-        EndIf
         Return xRet
     EndIf
 
@@ -213,11 +197,7 @@ User Function SZ0MODEL()
         '</div></body></html>'
 
         fEnvia("caio.silva@korusconsultoria.com.br", "Registro Alterado", cHTML, {}, .T., .T.)
-        If fEnvia("caio.silva@korusconsultoria.com.br", "Registro Alterado", cHTML, {}, .T., .T.)
         FWAlertInfo("Registro Alterado e enviado pro E-Mail.", "Sucesso")
-        Else
-        FWAlertInfo("Registro Alterado, mas houve falha no envio de e-mail.", "Atenção")
-        EndIf
         Return xRet
     EndIf
 
@@ -289,17 +269,6 @@ Static Function fEnvia(cPara, cAssunto, cCorpo, aAnexos, lMostraLog, lUsaTLS)
 
     FWRestArea(aArea)
 Return lRet
-
-Static Procedure _NotifyInfo(cMsg, cTitle)
-   Default cTitle := "Sucesso"
-   Begin Sequence
-      // Mostra alerta quando houver interface (SmartClient/WebApp)
-      FWAlertInfo(cMsg, cTitle)
-   Recover
-      // Em contexto sem UI (WS), registra no log
-      ConOut(cTitle + ": " + cMsg)
-   End Sequence
-Return
 
 
 
