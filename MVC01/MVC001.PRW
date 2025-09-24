@@ -2,17 +2,18 @@
 #Include "FwMVCDef.ch"
 
 
+//oMVCWS: cModelId := 'SZ0MODEL'
+
 
 User Function MVC001()
 
 	Local oBrowse	:= FwMBrowse():New()
-
 	oBrowse:setAlias('SZ0')
 	oBrowse:setDescription('Cadastro de Carteira de Clientes')
-
 	oBrowse:Activate()
 
 Return
+
 
 Static Function AfterCreateBrowse(oBrowse)
     oBrowse:AddColumn("Status", {|oRec| StatusDesc(oRec:Z0_STATUS)})
@@ -49,10 +50,6 @@ Static Function ViewDef()
 
 Return oView
 
-
-#Include "Protheus.ch"
-#Include "FwMVCDef.ch"
-
 Static Function MenuDef()
     Local aRotina := {}
 
@@ -62,8 +59,6 @@ Static Function MenuDef()
     ADD OPTION aRotina Title 'Excluir'         Action 'VIEWDEF.MVC001' OPERATION 5 ACCESS 0
     //ADD OPTION aRotina Title 'Imprimir'      Action 'VIEWDEF.MVC001' OPERATION 8 ACCESS 0
     //ADD OPTION aRotina Title 'Copiar'        Action 'VIEWDEF.MVC001' OPERATION 9 ACCESS 0
-
-    // Nova opção custom no menu do browse (sem operação padrão):
     ADD OPTION aRotina Title 'Enviar p/ Fluig' Action 'U_ENVIAFLUIG' OPERATION 0 ACCESS 0
 
 Return aRotina
