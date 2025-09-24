@@ -396,6 +396,7 @@ User Function SZ0MODEL()
             FWAlertInfo("Registro Incluído e enviado pro E-Mail.", "Sucesso")
         EndIf
 
+
         If cIdPonto == "MODELCOMMITNTTS" .and. nOp == 5
             // Captura os campos do registro excluído
             cDescri   := (Z0_DESCRI)
