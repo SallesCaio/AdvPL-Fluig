@@ -2,63 +2,44 @@
 #Include "FwMVCDef.ch"
 
 
-//oMVCWS: cModelId := 'SZ0MODEL'
-
 
 User Function MVC001()
-
-	Local oBrowse	:= FwMBrowse():New()
-	oBrowse:setAlias('SZ0')
-	oBrowse:setDescription('Cadastro de Carteira de Clientes')
-	oBrowse:Activate()
-
+    Local oBrowse := FwMBrowse():New()
+    oBrowse:setAlias("SZ0")
+    oBrowse:setDescription("Cadastro de Carteira de Clientes")
+    oBrowse:Activate()
 Return
-
-
-Static Function AfterCreateBrowse(oBrowse)
-    oBrowse:AddColumn("Status", {|oRec| StatusDesc(oRec:Z0_STATUS)})
-Return
-
 
 Static Function ModelDef()
-
-	Local oStruSZ0	:= FwFormStruct(1,'SZ0')
-	Local oModel	 
-	
-	oModel	:= MPFormModel():New("SZ0MODEL")
-	oModel:AddFields( 'SZ0MASTER', /*cOwner*/, oStruSZ0)
-	oModel:SetDescription( 'Modelo de Dados de Carteira' )
-	oModel:GetModel( 'SZ0MASTER' ):SetDescription( 'Dados de Carteira' )
-	
-	
-
-Return oModel
-
+    Local oStru := FwFormStruct(1,"SZ0")
+    Local oMod  := MPFormModel():New("SZ0MODEL")
+    oMod:AddFields("SZ0MASTER", , oStru)
+    oMod:SetDescription("Modelo de Dados de Carteira")
+    oMod:GetModel("SZ0MASTER"):SetDescription("Dados de Carteira")
+Return oMod
 
 Static Function ViewDef()
-
-    Local oModel	:= FWLoadModel( 'MVC001' )
-    Local oStruSZ0	:= FWFormStruct( 2, 'SZ0' )
-    Local oView
-
-    oView := FWFormView():New()
-    oView:SetModel( oModel )
-    oView:AddField( 'VIEW_SZ0', oStruSZ0, 'SZ0MASTER' )
-
-    oView:CreateHorizontalBox( 'TELA' , 100 )
-    oView:SetOwnerView( 'VIEW_SZ0', 'TELA' )
-
+    Local oMod  := FWLoadModel("MVC001")
+    Local oStr2 := FwFormStruct(2,"SZ0")
+    Local oView := FWFormView():New()
+    oView:SetModel(oMod)
+    oView:AddField("VIEW_SZ0", oStr2, "SZ0MASTER")
+    oView:CreateHorizontalBox("TELA",100)
+    oView:SetOwnerView("VIEW_SZ0","TELA")
 Return oView
 
-Static Function MenuDef()
-    Local aRotina := {}
 
-    ADD OPTION aRotina Title 'Incluir'         Action 'VIEWDEF.MVC001' OPERATION 3 ACCESS 0
-    ADD OPTION aRotina Title 'Alterar'         Action 'VIEWDEF.MVC001' OPERATION 4 ACCESS 0
-    ADD OPTION aRotina Title 'Visualizar'      Action 'VIEWDEF.MVC001' OPERATION 2 ACCESS 0
-    ADD OPTION aRotina Title 'Excluir'         Action 'VIEWDEF.MVC001' OPERATION 5 ACCESS 0
-    //ADD OPTION aRotina Title 'Imprimir'      Action 'VIEWDEF.MVC001' OPERATION 8 ACCESS 0
-    //ADD OPTION aRotina Title 'Copiar'        Action 'VIEWDEF.MVC001' OPERATION 9 ACCESS 0
-    ADD OPTION aRotina Title 'Enviar p/ Fluig' Action 'U_ENVIAFLUIG' OPERATION 0 ACCESS 0
 
-Return aRotina
+
+    Static Function MenuDef()
+    Local aRot := {}
+    ADD OPTION aRot Title "Incluir"         Action "VIEWDEF.MVC001" OPERATION 3 ACCESS 0
+    ADD OPTION aRot Title "Alterar"         Action "U_Z0ALT"          OPERATION 4 ACCESS 0
+    ADD OPTION aRot Title "Visualizar"      Action "VIEWDEF.MVC001" OPERATION 2 ACCESS 0
+    ADD OPTION aRot Title "Excluir"         Action "U_Z0EXC"          OPERATION 5 ACCESS 0
+    ADD OPTION aRot Title "Enviar p/ Fluig" Action "U_ENVIAFLUIG"   OPERATION 0 ACCESS 0
+
+
+
+Return aRot
+
