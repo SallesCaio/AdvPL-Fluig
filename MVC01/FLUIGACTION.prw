@@ -28,7 +28,7 @@ User Function ENVIAFLUIG()
     Local cLogDir      := "\temp\"
     Local lSucesso     := .F.
 
-    ConOut("[ENVIAFLUIG] Inicio")
+    ConOut("[ENVIAFLUIG] Inicio")       
 
     If Select(cAlias) == 0
         MsgAlert("Alias "+cAlias+" não aberto.")
@@ -53,11 +53,13 @@ User Function ENVIAFLUIG()
     DbSelectArea(cAliasVend)
     cVendNome := AllTrim((cAliasVend)->A3_NOME)
 
+    //Validação de preechimento
     If Empty(cCodigo) .or. Empty(cDescri) .or. Empty(cCodVend)
         MsgAlert("Preencha Código/Descrição/Vendedor antes de enviar.")
         Return .F.
     EndIf
 
+    //Validação do status
     If !( cStatusLocal $ ( ST_NOVO + ST_REPROVADO ) )
         MsgAlert("Status "+cStatusLocal+" não permite envio (somente 0 ou 3).")
         Return .F.
@@ -132,7 +134,7 @@ User Function ENVIAFLUIG()
 Return .F.
 
 //-----------------------------------------------
-// Atualiza status via RLock (sem RecLock)
+// Atualiza status via RLock 
 //-----------------------------------------------
 Static Function Z0SetStsRL()
     Local cAlias := "SZ0"
@@ -143,7 +145,7 @@ Static Function Z0SetStsRL()
 
     DbSelectArea(cAlias)
 
-    // Faz o lock simples (sem RecLock)
+   
     If (cAlias)->( RLock() )
         (cAlias)->Z0_STATUS := ST_EM_APROVACAO
         (cAlias)->( dbCommit() )
@@ -164,7 +166,7 @@ Static Function Z0SetStsMD(cCodigo, cCodVend)
         Return .F.
     EndIf
 
-    cKey := xFilial("SZ0") + PadR(cCodigo,6) + PadR(cCodVend,6) // Ajuste se o padding real for outro
+    cKey := xFilial("SZ0") + PadR(cCodigo,6) + PadR(cCodVend,6) // 
 
     If ! FWFindKey(oModel,"SZ0MASTER",cKey)
         Return .F.
@@ -178,45 +180,4 @@ Static Function Z0SetStsMD(cCodigo, cCodVend)
         Return .T.
     EndIf
 Return .F.
-/*  
-    // Logs
-    MemoWrite(cLogDir + "fluig_req_soap11.xml", cSoapXml)
 
-    // HttpPost( cUrl, cGet="", cPost=cSoapXml, nTimeOut, aHeaders, @cHeadRet )
-    cResp := HttpPost(cUrlFluig, "", cSoapXml, nTimeOut, aHeaders, @cHeadRet)
-    MemoWrite(cLogDir + "fluig_resp_soap11.txt", cResp)
-    MemoWrite(cLogDir + "fluig_resp_headers.txt", cHeadRet)
-
-    If !Empty(cResp) .and. "startProcessResponse" $ cResp
-        MsgInfo("Enviado ao Fluig com sucesso.")
-        Return .T.
-    EndIf
-
-    // Fallback: SOAPAction com namespace completo
-    aHeaders := {}
-    AAdd(aHeaders, 'User-Agent: Mozilla/4.0 (compatible; Protheus ' + GetBuild() + ')')
-    AAdd(aHeaders, 'Content-Type: text/xml;charset=UTF-8')
-    AAdd(aHeaders, 'SOAPAction: "http://ws.workflow.ecm.technology.totvs.com/startProcess"')
-    AAdd(aHeaders, 'Accept-Encoding: identity')
-    AAdd(aHeaders, 'Connection: Keep-Alive')
-
-    cHeadRet := ""
-    cResp := HttpPost(cUrlFluig, "", cSoapXml, nTimeOut, aHeaders, @cHeadRet)
-    MemoWrite(cLogDir + "fluig_resp_soap11_ns.txt", cResp)
-
-
-    If !Empty(cResp) .and. "startProcessResponse" $ cResp
-            // Atualiza status local para 1 (se ainda não)
-        If AllTrim((cAlias)->Z0_STATUS) != "1"
-            (cAlias)->(RecLock())
-            (cAlias)->Z0_STATUS := "1"
-            (cAlias)->(MsUnlock())
-        EndIf
-        MsgInfo("Enviado ao Fluig com sucesso (namespace).")
-        Return .T.
-    EndIf
-
-    MsgAlert("Falha no envio ao Fluig. Veja logs em " + cLogDir + ". Retorno: " + Left(cResp, 400))
-Return .F.
-
-*/
