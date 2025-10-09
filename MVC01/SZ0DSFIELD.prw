@@ -1,17 +1,5 @@
 #Include "protheus.ch"
 
-/*
-    Wrapper e utilidades para SZ0
-    Ajustado para garantir envio de e-mail na exclusão mesmo após retorno à versão v6 do SZ0ACTION.
-    Convenção atual assumida:
-       - Declarações das User Functions sem U_
-       - Chamadas usando U_<Nome>
-    O código abaixo trata três cenários de implementação de envio:
-       A) U_Z0_BUILDARR / U_Z0_ENRICHVEND / U_Z0_SENDMAIL
-       B) Apenas U_Z0_SENDMAIL (aceita array simples aOld)
-       C) Apenas U_Z0_MAILSEND (envio SMTP direto) -> gera HTML de exclusão aqui
-*/
-
 /* ====================== CONSTANTES DE STATUS ====================== */
 #Define ST_NOVO          "0"
 #Define ST_EM_APROVACAO  "1"
@@ -48,7 +36,8 @@ User Function Z0_VAL()
     EndIf
     DbSelectArea(cAlias)
     If (cAlias)->Z0_STATUS == ST_EM_APROVACAO
-        FWAlertError("Alteracao bloqueada. Registro em aprovacao (status = 1).")
+        // Mensagem generica, sem expor codigo
+        FWAlertError("Alteracao bloqueada. Este cadastro esta em aprovacao. Aguarde a finalizacao.")
         Return .F.
     EndIf
 Return .T.
@@ -59,13 +48,11 @@ User Function Z0EXC()
     Local cCod      := ""
     Local cDescri   := ""
     Local cCodVend  := ""
-    Local cNomeVend := ""
     Local aOld      := {}
     Local lSent     := .F.
 
-    // 1. Verificações básicas
     If Select(cAlias) == 0
-        FWAlertError("Alias SZ0 não selecionado.")
+        FWAlertError("Alias SZ0 nao selecionado.")
         Return
     EndIf
     DbSelectArea(cAlias)
@@ -76,41 +63,41 @@ User Function Z0EXC()
     EndIf
 
     If (cAlias)->Z0_STATUS == ST_EM_APROVACAO
-        FWAlertError("Exclusao bloqueada. Registro em aprovacao (status = 1).")
+        // Mensagem generica, sem expor codigo
+        FWAlertError("Exclusao bloqueada. Este cadastro esta em aprovacao. Tente novamente apos a finalizacao.")
         Return
     EndIf
 
-    // 2. Captura dados
+    // Dados
     cCod      := AllTrim((cAlias)->Z0_CODIGO)
     cDescri   := AllTrim((cAlias)->Z0_DESCRI)
     cCodVend  := AllTrim((cAlias)->Z0_CODVEN)
 
-    // Nome do vendedor (reaproveita lógica da action via enrich)
     aOld := U_Z0_BUILDARR(cCod, cDescri, cCodVend)
     U_Z0_ENRICHVEND(@aOld)
 
-    // 3. Confirmação
-    If ! MsgYesNo("Confirma exclusao da carteira " + cCod + " ?")
+    // Confirmacao
+    If ! MsgYesNo("Confirma excluir a carteira "+cCod+" - "+cDescri+"?", "Exclusao de Carteira")
         Return
     EndIf
 
-    // 4. Envia e-mail (antes ou depois da exclusão – aqui ANTES; se quiser depois, mova bloco)
+    // E-mail (antes da exclusao)
     lSent := U_Z0_SENDMAIL("DEL", aOld, {})
     If ! lSent
-        If ! MsgYesNo("Falha ao enviar e-mail de exclusao. Prosseguir mesmo assim?")
+        If ! MsgYesNo("Nao foi possivel enviar o e-mail de exclusao agora. Deseja prosseguir mesmo assim?")
             Return
         EndIf
     Else
-        FWAlertInfo("E-mail de exclusao enviado.","Exclusao")
+        FWAlertInfo("E-mail de exclusao enviado.", "Exclusao")
     EndIf
 
-    // 5. Exclusão efetiva
+    // Exclusao efetiva
     If (cAlias)->( RLock() )
         (cAlias)->( DbDelete() )
         (cAlias)->( DbCommit() )
         (cAlias)->( DbUnlock() )
-        FWAlertInfo("Registro " + cCod + " excluido.")
+        FWAlertInfo("Registro "+cCod+" excluido.", "Exclusao")
     Else
-        FWAlertError("Nao foi possivel bloquear o registro (RLock).")
+        FWAlertError("Nao foi possivel bloquear o registro para exclusao (RLock).")
     EndIf
 Return
