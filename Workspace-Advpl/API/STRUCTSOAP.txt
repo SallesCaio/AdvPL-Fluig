@@ -1,0 +1,16 @@
+
+-----------------------
+-- TESTES DO SOAP UI --
+-----------------------
+
+Operações 
+3 = inclusão
+4 = Alteração
+5 = Exclusão
+
+Comando para converter xml -> base64
+
+No Powershell:
+01 INCLUIR   -> $xml = '<?xml version="1.0" encoding="UTF-8"?><SZ0MODEL Operation="3" version="1.01"><SZ0MASTER modeltype="FIELDS"><Z0_FILIAL order="1"><value>01</value></Z0_FILIAL><Z0_CODIGO order="2"><value>202020</value></Z0_CODIGO><Z0_DESCRI order="3"><value>Inclusao manual 202020</value></Z0_DESCRI><Z0_CODVEN order="4"><value>000100</value></Z0_CODVEN><Z0_STATUS order="5"><value>1</value></Z0_STATUS></SZ0MASTER></SZ0MODEL>'
+02 ALTERAR   -> $xml = '<?xml version="1.0" encoding="UTF-8"?><SZ0MODEL Operation="4" version="1.01"><SZ0MASTER modeltype="FIELDS"><Z0_FILIAL order="1"><value>01</value></Z0_FILIAL><Z0_CODIGO order="2"><value>202020</value></Z0_CODIGO><Z0_DESCRI order="3"><value>Alterado via WS</value></Z0_DESCRI><Z0_CODVEN order="4"><value>000102</value></Z0_CODVEN><Z0_STATUS order="5"><value>2</value></Z0_STATUS></SZ0MASTER></SZ0MODEL>'
+04 CONVERTER -> [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($xml))
