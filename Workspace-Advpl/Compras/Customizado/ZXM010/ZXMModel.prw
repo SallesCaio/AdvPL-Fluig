@@ -1,9 +1,9 @@
 /*/{Protheus.doc} ZXMModel
-Funcoes de modelo e acesso a dados - ZXM010
+Funcoes de modelo e acesso a dados - ZXM010 v3.0
 @type  Function
 @author Caio Salles
-@since 2026-06-16
-@version 2.0
+@since 2026-06-17
+@version 3.0
 /*/
 
 #Include "Protheus.ch"
@@ -66,5 +66,55 @@ Return cNum
 //-------------------------------------------------------------------
 Static Function ZXMCanEdit(cStatus)
 
-    // So permite editar status 0 (Novo) e 3 (Reprovado)
-Return (cStatus == "0" .Or. cStatus == "3")
+Return (cStatus == "0" .Or. cStatus == "1")
+
+//-------------------------------------------------------------------
+// Calcula valor total da solicitacao (soma dos itens)
+//-------------------------------------------------------------------
+Static Function ZXMCalcTotal(cCodigo)
+
+    Local cAlias := "ZXN"
+    Local nTotal := 0
+
+    If Select(cAlias) == 0
+        Return 0
+    EndIf
+
+    DbSelectArea(cAlias)
+    DbSeek(xFilial(cAlias) + cCodigo)
+
+    While !Eof() .And. (cAlias)->ZXN_FILIAL == xFilial(cAlias) .And. (cAlias)->ZXN_COD == cCodigo
+        nTotal += (cAlias)->ZXN_VLTOT
+        DbSkip()
+    End
+
+Return nTotal
+
+//-------------------------------------------------------------------
+// Busca itens da solicitacao
+//-------------------------------------------------------------------
+Static Function ZXMGetItens(cCodigo)
+
+    Local aItens := {}
+    Local cAlias := "ZXN"
+
+    If Select(cAlias) == 0
+        Return aItens
+    EndIf
+
+    DbSelectArea(cAlias)
+    DbSeek(xFilial(cAlias) + cCodigo)
+
+    While !Eof() .And. (cAlias)->ZXN_FILIAL == xFilial(cAlias) .And. (cAlias)->ZXN_COD == cCodigo
+        AAdd(aItens, {;
+            (cAlias)->ZXN_ITEM,;
+            (cAlias)->ZXN_PROD,;
+            (cAlias)->ZXN_DESC,;
+            (cAlias)->ZXN_QTD,;
+            (cAlias)->ZXN_VLUNI,;
+            (cAlias)->ZXN_VLTOT;
+        })
+        DbSkip()
+    End
+
+Return aItens

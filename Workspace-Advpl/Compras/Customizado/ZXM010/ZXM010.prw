@@ -1,9 +1,10 @@
 /*/{Protheus.doc} ZXM010
-Central de Solicitacao Tecnica de Compras - v2.1
+Central de Solicitacao Tecnica de Compras - v3.0 (Modelo 3)
+Cabe�alho (ZXM) + Itens (ZXN)
 @type  Function
 @author Caio Salles
 @since 2026-06-17
-@version 2.1
+@version 3.0
 /*/
 
 #Include "Protheus.ch"
@@ -52,141 +53,144 @@ Static Function MenuDef()
 Return aRot
 
 //-------------------------------------------------------------------
-// ModelDef - Estrutura de dados, validacoes e regras
+// ModelDef - Estrutura de dados (Cabe�alho + Itens)
 //-------------------------------------------------------------------
 Static Function ModelDef()
 
-    Local oStru := FWFormStruct(1, "ZXM")
-    Local oMod  := MPFormModel():New("ZXMMODEL", {|oModel| ZXM010PRE(oModel)}, {|oModel| ZXM010POS(oModel)})
+    // Estruturas
+    Local oStruCab := FWFormStruct(1, "ZXM")  // Cabe�alho
+    Local oStruIte := FWFormStruct(1, "ZXN")  // Itens
+    Local oMod     := MPFormModel():New("ZXMMODEL", {|oMod| ZXM010PRE(oMod)}, {|oMod| ZXM010POS(oMod)})
 
-    // Adiciona campos da tabela
-    oMod:AddFields("ZXMMASTER", , oStru)
-
-    // PK obrigatoria (Release 12.1+)
+    // Cabe�alho
+    oMod:AddFields("ZXMMASTER", , oStruCab)
     oMod:SetPrimaryKey({"ZXM_FILIAL", "ZXM_COD"})
-
-    // Descricoes
     oMod:SetDescription("Modelo de Dados " + cTitulo)
     oMod:GetModel("ZXMMASTER"):SetDescription("Dados da Solicitacao")
 
-    // Campos obrigatorios via FormStruct
-    oStru:SetProperty("ZXM_DESC"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStru:SetProperty("ZXM_TIPO"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStru:SetProperty("ZXM_FORNEC", MODEL_FIELD_OBRIGAT, .T.)
-    oStru:SetProperty("ZXM_LOJA"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStru:SetProperty("ZXM_URGEN" , MODEL_FIELD_OBRIGAT, .T.)
+    // Itens (grid)
+    oMod:AddGrid("ZXNDETAIL", "ZXMMASTER", oStruIte)
+    oMod:GetModel("ZXNDETAIL"):SetDescription("Itens da Solicitacao")
+
+    // Relacao cabe�alho → itens
+    oMod:SetRelation("ZXNDETAIL", {{"ZXN_FILIAL", "xFilial('ZXN')"}, {"ZXN_COD", "ZXM_COD"}}, ZXN->(IndexKey(1)))
+
+    // Campos obrigatorios cabe�alho
+    oStruCab:SetProperty("ZXM_DESC"  , MODEL_FIELD_OBRIGAT, .T.)
+    oStruCab:SetProperty("ZXM_TIPO"  , MODEL_FIELD_OBRIGAT, .T.)
+    oStruCab:SetProperty("ZXM_FORNEC", MODEL_FIELD_OBRIGAT, .T.)
+    oStruCab:SetProperty("ZXM_LOJA"  , MODEL_FIELD_OBRIGAT, .T.)
+    oStruCab:SetProperty("ZXM_URGEN" , MODEL_FIELD_OBRIGAT, .T.)
+
+    // Campos obrigatorios itens
+    oStruIte:SetProperty("ZXN_PROD"  , MODEL_FIELD_OBRIGAT, .T.)
+    oStruIte:SetProperty("ZXN_QTD"   , MODEL_FIELD_OBRIGAT, .T.)
+    oStruIte:SetProperty("ZXN_VLUNI", MODEL_FIELD_OBRIGAT, .T.)
 
 Return oMod
 
 //-------------------------------------------------------------------
-// ViewDef - Layout da tela com abas
+// ViewDef - Layout da tela (Cabe�alho + Grid)
 //-------------------------------------------------------------------
 Static Function ViewDef()
 
-    Local oMod  := FWLoadModel("ZXM010")
-    Local oStru := FWFormStruct(2, "ZXM")
-    Local oView := FWFormView():New()
+    Local oMod     := FWLoadModel("ZXM010")
+    Local oStruCab := FWFormStruct(2, "ZXM")
+    Local oStruIte := FWFormStruct(2, "ZXN")
+    Local oView    := FWFormView():New()
 
     oView:SetModel(oMod)
 
-    // Duas abas: Cabecalho (60%) e Detalhes (40%)
-    oView:CreateHorizontalBox("CABEC", 60)
-    oView:CreateHorizontalBox("DETA", 40)
-
-    oView:AddField("VIEW_ZXM", oStru, "ZXMMASTER")
-
+    // Cabe�alho (55%)
+    oView:CreateHorizontalBox("CABEC", 55)
+    oView:AddField("VIEW_ZXM", oStruCab, "ZXMMASTER")
     oView:SetOwnerView("VIEW_ZXM", "CABEC")
-
-    // Titulo da secao
     oView:EnableTitleView("VIEW_ZXM", "Dados da Solicitacao Tecnica")
 
-    // Forca fechamento da janela na confirmacao
+    // Itens grid (45%)
+    oView:CreateHorizontalBox("ITENS", 45)
+    oView:AddField("VIEW_ZXN", oStruIte, "ZXNDETAIL")
+    oView:SetOwnerView("VIEW_ZXN", "ITENS")
+    oView:EnableTitleView("VIEW_ZXN", "Itens da Solicitacao")
+
     oView:SetCloseOnOk({||.T.})
 
 Return oView
 
 //-------------------------------------------------------------------
-// ZXM010PRE - Validacao PRE-gatilho (antes de gravar)
-// Retorna .T. se valido, .F. se reprovado
+// ZXM010PRE - Validacao PRE-gatilho
 //-------------------------------------------------------------------
 Static Function ZXM010PRE(oModel)
 
-    Local oSect   := oModel:GetModel("ZXMMASTER")
-    Local nOp     := oModel:GetOperation()
-    Local cDesc   := AllTrim(oSect:GetValue("ZXM_DESC"))
-    Local cTipo   := AllTrim(oSect:GetValue("ZXM_TIPO"))
-    Local cFornec := AllTrim(oSect:GetValue("ZXM_FORNEC"))
-    Local cLoja   := AllTrim(oSect:GetValue("ZXM_LOJA"))
-    Local cUrgen  := AllTrim(oSect:GetValue("ZXM_URGEN"))
-    Local cStatus := oSect:GetValue("ZXM_STATUS")
+    Local oCab   := oModel:GetModel("ZXMMASTER")
+    Local oIte   := oModel:GetModel("ZXNDETAIL")
+    Local nOp    := oModel:GetOperation()
+    Local cDesc  := AllTrim(oCab:GetValue("ZXM_DESC"))
+    Local cTipo  := AllTrim(oCab:GetValue("ZXM_TIPO"))
+    Local cFornec:= AllTrim(oCab:GetValue("ZXM_FORNEC"))
+    Local cLoja  := AllTrim(oCab:GetValue("ZXM_LOJA"))
+    Local cUrgen := AllTrim(oCab:GetValue("ZXM_URGEN"))
+    Local cStatus:= oCab:GetValue("ZXM_STATUS")
 
-    //--------------------------------------------------
-    // Regra: Aprovado nao pode ser alterado
-    //--------------------------------------------------
+    // Regra: Aprovado nao pode editar
     If nOp == 4 .And. cStatus == ST_APROVADO
         FWAlertError("Solicitacao APROVADA nao pode ser alterada.", "Bloqueio")
         Return .F.
     EndIf
 
-    //--------------------------------------------------
-    // Regra: Reprovado nao pode ser alterado (reabrir = novo)
-    //--------------------------------------------------
+    // Regra: Reprovado nao pode editar
     If nOp == 4 .And. cStatus == ST_REPROVADO
         FWAlertError("Solicitacao REPROVADA nao pode ser alterada. Crie uma nova.", "Bloqueio")
         Return .F.
     EndIf
 
-    //--------------------------------------------------
     // Valida campos obrigatorios (Inclusao e Alteracao)
-    //--------------------------------------------------
     If nOp == 3 .Or. nOp == 4
-
         If Empty(cDesc)
             FWAlertError("Descricao e obrigatoria.", "Validacao")
             Return .F.
         EndIf
-
         If Empty(cTipo)
             FWAlertError("Tipo da solicitacao e obrigatorio.", "Validacao")
             Return .F.
         EndIf
-
         If Empty(cFornec)
             FWAlertError("Fornecedor e obrigatorio.", "Validacao")
             Return .F.
         EndIf
-
         If Empty(cLoja)
             FWAlertError("Loja do fornecedor e obrigatoria.", "Validacao")
             Return .F.
         EndIf
-
         If Empty(cUrgen)
             FWAlertError("Urgencia e obrigatoria.", "Validacao")
             Return .F.
         EndIf
-
-        //--------------------------------------------------
-        // Valida fornecedor existe (SA1)
-        //--------------------------------------------------
+        // Valida fornecedor existe
         If !ZXM010VFORN(cFornec, cLoja)
             FWAlertError("Fornecedor " + cFornec + "/" + cLoja + " nao cadastrado.", "Validacao")
             Return .F.
         EndIf
-
-        //--------------------------------------------------
-        // Valida urgencia valida
-        //--------------------------------------------------
+        // Valida urgencia
         If !(cUrgen $ "B/M/A")
-            FWAlertError("Urgencia invalida. Use B (Baixa), M (Media) ou A (Alta).", "Validacao")
+            FWAlertError("Urgencia invalida. Use B, M ou A.", "Validacao")
             Return .F.
         EndIf
-
+        // Valida se tem itens
+        Local nTotIte := 0
+        Local nX := 0
+        For nX := 1 To oIte:Length()
+            If !oIte:IsDeleted(nX)
+                nTotIte++
+            EndIf
+        Next
+        If nTotIte == 0
+            FWAlertError("Informe pelo menos 1 item na solicitacao.", "Validacao")
+            Return .F.
+        EndIf
     EndIf
 
-    //--------------------------------------------------
     // Valida exclusao: so Novo ou Reprovado
-    //--------------------------------------------------
     If nOp == 5
         If !(cStatus $ "0/3")
             FWAlertError("So e possivel excluir solicitacoes NOVAS ou REPROVADAS.", "Bloqueio")
@@ -197,21 +201,19 @@ Static Function ZXM010PRE(oModel)
 Return .T.
 
 //-------------------------------------------------------------------
-// ZXM010POS - Pos-gatilho (apos gravacao confirmada)
-// Auto-preenche campos de auditororia
+// ZXM010POS - Pos-gatilho (auto-preenche auditoria)
 //-------------------------------------------------------------------
 Static Function ZXM010POS(oModel)
 
-    Local oSect := oModel:GetModel("ZXMMASTER")
-    Local nOp   := oModel:GetOperation()
+    Local oCab := oModel:GetModel("ZXMMASTER")
+    Local nOp  := oModel:GetOperation()
 
     If nOp == 3
-        // Inclusao: seta status inicial e data de cadastro
-        If Empty(oSect:GetValue("ZXM_STATUS"))
-            oSect:SetValue("ZXM_STATUS", ST_NOVO)
+        If Empty(oCab:GetValue("ZXM_STATUS"))
+            oCab:SetValue("ZXM_STATUS", ST_NOVO)
         EndIf
-        oSect:SetValue("ZXM_DTAB", Date())
-        oSect:SetValue("ZXM_USR", __cUserID)
+        oCab:SetValue("ZXM_DTAB", Date())
+        oCab:SetValue("ZXM_USR", __cUserID)
     EndIf
 
 Return .T.
@@ -221,8 +223,8 @@ Return .T.
 //-------------------------------------------------------------------
 Static Function ZXM010VFORN(cCodForn, cLojaForn)
 
-    Local lRet   := .F.
-    Local aArea  := FWGetArea()
+    Local lRet  := .F.
+    Local aArea := FWGetArea()
 
     DbSelectArea("SA1")
     If DbSeek(xFilial("SA1") + cCodForn + cLojaForn)
