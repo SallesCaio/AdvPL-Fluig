@@ -40,7 +40,7 @@ Static Function fReportDef()
     oReport:SetLineHeight(52)
     oReport:SetColSpace(2)
     oReport:cFontBody := "Arial"
-    oReport:nFontBody := 10
+    oReport:nFontBody := 8
     oReport:lParamPage := .T.
     oReport:SetTotalInLine(.F.)
 
@@ -110,7 +110,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "SC", ;
         "@!", ;
-        12)
+        10)
 
     // Data de emissao da solicitacao.
     TRCell():New(oSection, ;
@@ -118,7 +118,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "Emissao", ;
         "@D", ;
-        14)
+        12)
 
     // Solicitante informado na SC1.
     TRCell():New(oSection, ;
@@ -134,7 +134,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "Fornecedor", ;
         "@!", ;
-        28)
+        24)
 
     // Codigo do produto solicitado.
     TRCell():New(oSection, ;
@@ -142,7 +142,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "Produto", ;
         "@!", ;
-        16)
+        14)
 
     // Descricao do produto solicitado.
     TRCell():New(oSection, ;
@@ -150,7 +150,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "Descricao Produto", ;
         "@!", ;
-        46)
+        32)
 
     // Quantidade solicitada.
     TRCell():New(oSection, ;
@@ -158,7 +158,7 @@ Static Function fReportDef()
         "QRY_SC", ;
         "Quantidade", ;
         "@E 999,999.99", ;
-        12)
+        10)
 
     // Pontos de evolucao futura:
     // TRBreak pode ser reativado para agrupar por solicitacao.
@@ -204,6 +204,7 @@ Static Function fRepPrint(oReport)
 
     Local cQryCab     := ""
     Local cQry        := ""
+    Local cLogo       := ""
 
     Local nAtual      := 0
     Local nTotal      := 0
@@ -289,6 +290,21 @@ Static Function fRepPrint(oReport)
     // =====================================================
     DbSelectArea("QRY_CAB")
     QRY_CAB->(DbGoTop())
+
+/*
+    cLogo += "system\lgrl99.bmp"
+
+    If ExistBlock("File") .And. File(cLogo)
+
+        oReport:SayBitmap( ;
+            5, ;
+            5, ;
+            cLogo, ;
+            42, ;
+            18 )
+
+    EndIf
+*/
 
     oSectionCab:Init()
     oSectionCab:PrintLine()
