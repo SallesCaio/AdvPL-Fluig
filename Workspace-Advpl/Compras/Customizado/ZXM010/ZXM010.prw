@@ -75,17 +75,9 @@ Static Function ModelDef()
     // Relacao cabe�alho → itens
     oMod:SetRelation("ZXNDETAIL", {{"ZXN_FILIAL", "xFilial('ZXN')"}, {"ZXN_COD", "ZXM_COD"}}, ZXN->(IndexKey(1)))
 
-    // Campos obrigatorios cabe�alho
-    oStruCab:SetProperty("ZXM_DESC"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStruCab:SetProperty("ZXM_TIPO"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStruCab:SetProperty("ZXM_FORNEC", MODEL_FIELD_OBRIGAT, .T.)
-    oStruCab:SetProperty("ZXM_LOJA"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStruCab:SetProperty("ZXM_URGEN" , MODEL_FIELD_OBRIGAT, .T.)
-
-    // Campos obrigatorios itens
-    oStruIte:SetProperty("ZXN_PROD"  , MODEL_FIELD_OBRIGAT, .T.)
-    oStruIte:SetProperty("ZXN_QTD"   , MODEL_FIELD_OBRIGAT, .T.)
-    oStruIte:SetProperty("ZXN_VLUNI", MODEL_FIELD_OBRIGAT, .T.)
+    // Obrigatoriedade controlada via SX3 (Obrigat. Usuario)
+    // ZXM_DESC, ZXM_TIPO, ZXM_FORNEC, ZXM_LOJA, ZXM_URGEN
+    // ZXN_PROD, ZXN_QTD, ZXN_VLUNI
 
 Return oMod
 
@@ -94,24 +86,47 @@ Return oMod
 //-------------------------------------------------------------------
 Static Function ViewDef()
 
-    Local oMod     := FWLoadModel("ZXM010")
-    Local oStruCab := FWFormStruct(2, "ZXM")
-    Local oStruIte := FWFormStruct(2, "ZXN")
-    Local oView    := FWFormView():New()
+    Local oModel     := FWLoadModel("ZXM010")
+    Local oView      := FWFormView():New()
 
-    oView:SetModel(oMod)
+    oView:SetModel(oModel)
 
-    // Cabe�alho (55%)
-    oView:CreateHorizontalBox("CABEC", 55)
-    oView:AddField("VIEW_ZXM", oStruCab, "ZXMMASTER")
-    oView:SetOwnerView("VIEW_ZXM", "CABEC")
-    oView:EnableTitleView("VIEW_ZXM", "Dados da Solicitacao Tecnica")
+    // Filtra campos para cada aba
+    Local oStrPrinc  := FWFormStruct(2, "ZXM", {|cCampo| AllTrim(cCampo) $ "ZXM_DESC|ZXM_TIPO|ZXM_FORNEC|ZXM_LOJA|ZXM_URGEN|ZXM_CATEG"})
+    Local oStrObs    := FWFormStruct(2, "ZXM", {|cCampo| AllTrim(cCampo) $ "ZXM_OBS|ZXM_DETAL|ZXM_JUST"})
+    Local oStrIte    := FWFormStruct(2, "ZXN")
 
-    // Itens grid (45%)
-    oView:CreateHorizontalBox("ITENS", 45)
-    oView:AddField("VIEW_ZXN", oStruIte, "ZXNDETAIL")
-    oView:SetOwnerView("VIEW_ZXN", "ITENS")
-    oView:EnableTitleView("VIEW_ZXN", "Itens da Solicitacao")
+    // Remove pastas padrão
+    oStrPrinc:SetNoFolder()
+    oStrObs:SetNoFolder()
+
+    // Remove campos auto-preenchidos do grid
+    oStrIte:RemoveField("ZXN_FILIAL")
+    oStrIte:RemoveField("ZXN_COD")
+
+    // Cabeçalho com abas (35%)
+    oView:AddField("VIEW_ZXM", oStrPrinc, "ZXMMASTER")
+    oView:AddField("VIEW_OBS", oStrObs, "ZXMMASTER")
+
+    oView:CreateHorizontalBox("CABEC", 35)
+
+    // Folder de abas dentro do cabeçalho
+    oView:CreateFolder("ABAS_CABEC", "CABEC")
+    oView:AddSheet("ABAS_CABEC", "SHEET_DADOS", "Dados Principais")
+    oView:AddSheet("ABAS_CABEC", "SHEET_OBS", "Obs / Desc Tecnica")
+
+    // Boxes de cada sheet
+    oView:CreateHorizontalBox("BOX_DADOS", 100, , , "ABAS_CABEC", "SHEET_DADOS")
+    oView:CreateHorizontalBox("BOX_OBS", 100, , , "ABAS_CABEC", "SHEET_OBS")
+
+    // Itens grid (65%)
+    oView:CreateHorizontalBox("ITENS", 65)
+    oView:AddGrid("VIEW_ITENS", oStrIte, "ZXNDETAIL")
+
+    // Liga views às boxes
+    oView:SetOwnerView("VIEW_ZXM", "BOX_DADOS")
+    oView:SetOwnerView("VIEW_OBS", "BOX_OBS")
+    oView:SetOwnerView("VIEW_ITENS", "ITENS")
 
     oView:SetCloseOnOk({||.T.})
 
@@ -122,14 +137,13 @@ Return oView
 //-------------------------------------------------------------------
 Static Function ZXM010PRE(oModel)
 
+    Local nTotIte := 0
+    Local nX := 0
     Local oCab   := oModel:GetModel("ZXMMASTER")
     Local oIte   := oModel:GetModel("ZXNDETAIL")
     Local nOp    := oModel:GetOperation()
-    Local cDesc  := AllTrim(oCab:GetValue("ZXM_DESC"))
-    Local cTipo  := AllTrim(oCab:GetValue("ZXM_TIPO"))
     Local cFornec:= AllTrim(oCab:GetValue("ZXM_FORNEC"))
     Local cLoja  := AllTrim(oCab:GetValue("ZXM_LOJA"))
-    Local cUrgen := AllTrim(oCab:GetValue("ZXM_URGEN"))
     Local cStatus:= oCab:GetValue("ZXM_STATUS")
 
     // Regra: Aprovado nao pode editar
@@ -144,41 +158,17 @@ Static Function ZXM010PRE(oModel)
         Return .F.
     EndIf
 
-    // Valida campos obrigatorios (Inclusao e Alteracao)
+    // Valida fornecedor existe (Inclusao e Alteracao)
     If nOp == 3 .Or. nOp == 4
-        If Empty(cDesc)
-            FWAlertError("Descricao e obrigatoria.", "Validacao")
-            Return .F.
-        EndIf
-        If Empty(cTipo)
-            FWAlertError("Tipo da solicitacao e obrigatorio.", "Validacao")
-            Return .F.
-        EndIf
-        If Empty(cFornec)
-            FWAlertError("Fornecedor e obrigatorio.", "Validacao")
-            Return .F.
-        EndIf
-        If Empty(cLoja)
-            FWAlertError("Loja do fornecedor e obrigatoria.", "Validacao")
-            Return .F.
-        EndIf
-        If Empty(cUrgen)
-            FWAlertError("Urgencia e obrigatoria.", "Validacao")
-            Return .F.
-        EndIf
-        // Valida fornecedor existe
-        If !ZXM010VFORN(cFornec, cLoja)
+        If !Empty(cFornec) .And. !ZXM010VFORN(cFornec, cLoja)
             FWAlertError("Fornecedor " + cFornec + "/" + cLoja + " nao cadastrado.", "Validacao")
             Return .F.
         EndIf
-        // Valida urgencia
-        If !(cUrgen $ "B/M/A")
-            FWAlertError("Urgencia invalida. Use B, M ou A.", "Validacao")
-            Return .F.
-        EndIf
-        // Valida se tem itens
-        Local nTotIte := 0
-        Local nX := 0
+    EndIf
+
+    // Valida se tem itens (Inclusao e Alteracao)
+    If nOp == 3 .Or. nOp == 4
+        nTotIte := 0
         For nX := 1 To oIte:Length()
             If !oIte:IsDeleted(nX)
                 nTotIte++
@@ -219,15 +209,16 @@ Static Function ZXM010POS(oModel)
 Return .T.
 
 //-------------------------------------------------------------------
-// ZXM010VFORN - Valida se fornecedor existe na SA1
+// ZXM010VFORN - Valida se fornecedor existe na SA2
 //-------------------------------------------------------------------
 Static Function ZXM010VFORN(cCodForn, cLojaForn)
 
     Local lRet  := .F.
     Local aArea := FWGetArea()
 
-    DbSelectArea("SA1")
-    If DbSeek(xFilial("SA1") + cCodForn + cLojaForn)
+    DbSelectArea("SA2")
+    SA2->(DbSetOrder(1))
+    If SA2->(DbSeek(xFilial("SA2") + cCodForn + cLojaForn))
         lRet := .T.
     EndIf
 
