@@ -20,7 +20,7 @@ User Function ZUPXML()
     cPasta := GetMV("MV_NGINN")
 
     If Empty(cPasta)
-        FWAlertError("O parametro MV_NGINN nao esta configurado.", "Enviar XML")
+        FWAlertError("O parametro MV_NGINN não esta configurado.", "Enviar XML")
         Return
     Endif
 
@@ -72,30 +72,25 @@ User Function ZUPXML()
             "Enviar XML")
         Return
     EndIf
-    
 
     If !fValidaNFe(cDestino, @cErro)
         FErase(cDestino)
 
         FWAlertError(;
-            "O arquivo nao e uma NF-e compativel com este processo." + CRLF + ;
+            "O arquivo não e uma NF-e compativel com este processo." + CRLF + ;
             cErro + CRLF + ;
-            "O arquivo nao foi mantido na pasta INN.",;
+            "O arquivo não foi mantido na pasta INN.",;
             "Enviar XML")
         Return
     Endif
 
-    // Funções de leitura e processamento para o monitor.
-    COLAUTOREAD()
-    SCHEDCOMCOL()
+    MsAguarde( {|| COLAUTOREAD(), SCHEDCOMCOL() }, "Enviar XML", "Processando o XML no monitor...")  
 
     FWAlertInfo(;
-        "XML enviado com sucesso. Verifique o monitor." + CRLF +;
+        "XML enviado com sucesso. Verifique o Monitor." + CRLF + ;
         "Arquivo:" + cNome, ;
         "Enviar XML";
     )
-
-
 
 Return 
 
@@ -120,20 +115,20 @@ Static Function fValidaNFe(cArquivo, cErro)
     cXML := MemoRead(cArquivo)
 
     If Empty(cXML)
-        cErro := "Nao foi possivel ler o conteudo do arquivo"
+        cErro := "Não foi possivel ler o conteudo do arquivo."
         Return .F.
     Endif
 
     cRaiz := fTagRaiz(cXML)
 
     If Empty(cRaiz)
-        cErro := "Nao foi possivel identificar a tag raiz do XML."
+        cErro := "Não foi possivel identificar a tag raiz do XML."
         Return .F.
     Endif
     
     If cRaiz == "NFEPROC"
         If !("<NFe" $ cXML)
-            cErro := "A estrutura nfeProc nao possui o nó NFe"
+            cErro := "A estrutura nfeProc não possui o nó NFe."
             Return .F.
         Endif
     ElseIf cRaiz <> "NFE"
@@ -142,8 +137,8 @@ Static Function fValidaNFe(cArquivo, cErro)
         Return .F.
     Endif
 
-    if !("<infNFe" $ cXML)
-        cErro := "A estrutura NFe nao possui o nó nfNFe"
+    If !("<infNFe" $ cXML)
+        cErro := "A estrutura NFe não possui o nó infNFe."
         Return .F.
     Endif
 
