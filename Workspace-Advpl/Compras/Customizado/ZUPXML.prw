@@ -17,7 +17,6 @@ User Function ZUPXML()
 
     Local lCopia := .F.
 
-    // cPasta := SuperGetMV("MV_NGINN", .F., "")
     cPasta := GetMV("MV_NGINN")
 
     If Empty(cPasta)
@@ -65,8 +64,6 @@ User Function ZUPXML()
     Endif  
 
     lCopia := CpyT2S(cArquivo, cPasta, .T., .F.)
-    //lCopia := !Empty(CpyF2Web(cArquivo, .T., .F., .F., .F.))
-    //lCopia := CpyT2S(StrTran(cArquivo, "\", "/"), cPasta, .T., .F.)
 
     If !lCopia 
         FWAlertError(;
@@ -76,13 +73,6 @@ User Function ZUPXML()
         Return
     EndIf
     
-//    If !CpyT2S(cArquivo, cPasta, .T., .F.)
-//        FWAlertError( ;
-//            "Nao foi possivel copiar o XML para a pasta INN." + CRLF + ;
-//            "Arquivo: " + cNome, ;
-//           "Enviar XML" )
-//        Return
-//    EndIf
 
     If !fValidaNFe(cDestino, @cErro)
         FErase(cDestino)
@@ -94,6 +84,10 @@ User Function ZUPXML()
             "Enviar XML")
         Return
     Endif
+
+    // Funções de leitura e processamento para o monitor.
+    COLAUTOREAD()
+    SCHEDCOMCOL()
 
     FWAlertInfo(;
         "XML enviado com sucesso. Verifique o monitor." + CRLF +;
@@ -153,55 +147,6 @@ Static Function fValidaNFe(cArquivo, cErro)
         Return .F.
     Endif
 
-    /*
-
-    If cRaiz == "NFEPROC" .And. !("<NFe" $ cXML)
-        cErro := "A estrutura nfeProc nao possui o no NFe"
-        Return .F.
-    Endif
-
-    If cRaiz <> "NFEPROC" .And. cRaiz <> "NFE"
-        cErro := "Tipo de documento identificado: " + cRaiz + "Esperado: NF-e"
-        Return .F.
-    Endif
-
-    If !("<infNFe $ cXML")
-        cErro := "A estrutura NFe nao possui o no InfNFe"
-        Return .F.
-    Endif
-    */
-    /*
-    If cRaiz == "NFEPROC"
-        If !oXML:DOMHasChildNode()
-            cErro := "A estrutura nfeProc nao possui o no NFE"
-            Return .F.
-        Endif
-
-        If !oXML:DOMChildNode()
-            cErro := "Nao foi possivel acessar o no NFE"
-            Return .F.
-        Endif
-
-        cRaiz := Upper(AllTrim(oXML:CNAME))
-    Endif
-
-    If cRaiz <> "NFE"
-        cErro := "Tipo de documento identificado: " + ;
-        AllTrim(oXML:CNAME) + ". Esperado: NF-e."
-        Return .F.
-    Endif
-
-    If !oXML:DOMHasChildNode()
-        cErro := "A estrutura NFe nao possui o no infNFe"
-        Return .F.
-    Endif
-
-    If Upper(AllTrim(oXML:CNAME)) <> "INFNFE"
-        cErro := "A estrutura da NFe nao possui o no infNFe esperado."
-        Return .F.
-    Endif
-    */
-
 Return .T.
 
 Static Function fTagRaiz(cXML)
@@ -217,10 +162,6 @@ Static Function fTagRaiz(cXML)
         Endif
     Endif
 
-   // If nFim > 0
-   //     c := SubStr(c, nFim + 2)
-   // Endif
-
     nAbr := At("<", c)
     If nAbr == 0
         Return ""
@@ -232,10 +173,6 @@ Static Function fTagRaiz(cXML)
     If nFim == 0
         Return ""
     Endif
-
-    //If nFim > 0
-    //    c := SubStr(c, 1, nFim - 1)
-    //Endif
 
     c := SubStr(c, 1, nFim - 1)
 
